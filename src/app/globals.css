@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Stark Minimalist Theme */
+    --background: 0 0% 0%; /* #000000 */
+    --foreground: 0 0% 100%; /* #ffffff */
+
+    --card: 0 0% 3%; /* #080808 - Slightly lighter than pure black */
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 142 71% 45%; /* #16a34a - Matrix/Terminal Green */
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 10%; /* Dark Grey for subtle elements */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 142 71% 45%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%; /* Visible but subtle borders */
+    --input: 0 0% 20%;
+    --ring: 142 71% 45%;
+    
+    --radius: 0.25rem; /* Sharper corners for "stark" look */
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

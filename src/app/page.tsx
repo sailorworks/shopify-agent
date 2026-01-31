@@ -43,7 +43,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground font-sans selection:bg-primary selection:text-black">
+    <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black">
       {/* Grid Pattern Background - Subtle */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20" 
            style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }}
@@ -58,9 +58,9 @@ export default function Home() {
         >
            <div className="flex items-center gap-2">
              <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-             <span className="font-mono text-sm tracking-widest uppercase">Shopify Agent v0.1</span>
+             <span className="text-sm tracking-widest uppercase">Shopify Agent v0.1</span>
            </div>
-           <div className="font-mono text-xs text-muted-foreground">
+           <div className="text-xs text-muted-foreground">
              SYSTEM STATUS: <span className="text-primary">ONLINE</span>
            </div>
         </motion.header>
@@ -92,7 +92,7 @@ export default function Home() {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-red-500 text-center mt-6 font-mono text-sm border border-red-900/50 bg-red-900/10 py-2"
+                    className="text-red-500 text-center mt-6 text-sm border border-red-900/50 bg-red-900/10 py-2"
                   >
                     [ERROR]: {error}
                   </motion.div>
@@ -109,7 +109,7 @@ export default function Home() {
           transition={{ delay: 0.5 }}
           className="fixed bottom-0 left-0 w-full p-4 border-t border-border bg-background/80 backdrop-blur-sm"
         >
-          <div className="container mx-auto flex justify-between items-center text-[10px] font-mono uppercase text-muted-foreground tracking-widest">
+          <div className="container mx-auto flex justify-between items-center text-[10px] uppercase text-muted-foreground tracking-widest">
             <div>
               Powered by <span className="text-white">Composio</span> • Jungle Scout • Semrush
             </div>

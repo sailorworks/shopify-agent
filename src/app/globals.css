@@ -1,23 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Google Font - Outfit (Modern Geometric Sans-Serif) */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
  
 @layer base {
   :root {
-    /* Stark Minimalist Theme */
-    --background: 0 0% 0%; /* #000000 */
-    --foreground: 0 0% 100%; /* #ffffff */
+    /* Cyberpunk/Terminal Theme - Green & Black */
+    --background: 0 0% 0%; /* Pure Black */
+    --foreground: 0 0% 100%;
 
-    --card: 0 0% 3%; /* #080808 - Slightly lighter than pure black */
+    --card: 0 0% 3%;
     --card-foreground: 0 0% 100%;
 
     --popover: 0 0% 3%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 142 71% 45%; /* #16a34a - Matrix/Terminal Green */
+    --primary: 142 71% 45%; /* Matrix Green */
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 10%; /* Dark Grey for subtle elements */
+    --secondary: 0 0% 10%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 15%;
@@ -29,19 +32,21 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%; /* Visible but subtle borders */
+    --border: 0 0% 20%;
     --input: 0 0% 20%;
     --ring: 142 71% 45%;
     
-    --radius: 0.25rem; /* Sharper corners for "stark" look */
+    --radius: 1rem; /* High radius for "curved" card look */
   }
 }
  
 @layer base {
   * {
     @apply border-border;
+    font-family: 'Outfit', sans-serif;
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Outfit', sans-serif !important;
   }
 }

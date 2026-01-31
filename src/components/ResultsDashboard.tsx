@@ -31,7 +31,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-2xl font-mono tracking-tight text-white uppercase">
+          <h1 className="text-2xl tracking-tight text-white uppercase">
             {data.name} <span className="text-muted-foreground">// Analysis</span>
           </h1>
         </div>
@@ -53,7 +53,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
         {/* Demand Score */}
         <Card className="bg-card border-border rounded-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase">
               Demand Score
             </CardTitle>
             <Activity className="h-4 w-4 text-primary" />
@@ -67,7 +67,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
         {/* Est. Revenue */}
         <Card className="bg-card border-border rounded-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase">
               Est. Revenue
             </CardTitle>
             <DollarSign className="h-4 w-4 text-primary" />
@@ -81,13 +81,13 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
         {/* Trend Direction */}
         <Card className="bg-card border-border rounded-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase">
               Market Trend
             </CardTitle>
             <TrendingUp className={`h-4 w-4 ${data.trend === 'up' ? 'text-primary' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white font-mono uppercase">{data.trend}</div>
+            <div className="text-2xl font-bold text-white uppercase">{data.trend}</div>
             <p className="text-xs text-muted-foreground mt-1">Year-over-Year</p>
           </CardContent>
         </Card>
@@ -95,7 +95,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
         {/* Competitor Count */}
         <Card className="bg-card border-border rounded-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase">
               Competitors
             </CardTitle>
             <Users className="h-4 w-4 text-primary" />
@@ -112,7 +112,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
         {/* Main Chart: Revenue Trend (Spans 2 cols) */}
         <Card className="col-span-1 lg:col-span-2 bg-card border-border rounded-sm">
           <CardHeader className="py-3 px-4 border-b border-border/50">
-            <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary"></span>
               Revenue Velocity (6 Mo)
             </CardTitle>
@@ -126,7 +126,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
         {/* Side Chart: Traffic Sources */}
         <Card className="col-span-1 bg-card border-border rounded-sm">
            <CardHeader className="py-3 px-4 border-b border-border/50">
-            <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500"></span>
               Traffic Sources
             </CardTitle>
@@ -142,12 +142,12 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
          {/* Competitor List Table (Dense) */}
         <Card className="col-span-1 lg:col-span-2 bg-card border-border rounded-sm h-full">
           <CardHeader className="py-3 px-4 border-b border-border/50">
-             <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase">
+             <CardTitle className="text-sm font-medium text-muted-foreground uppercase">
               Competitor Analysis
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-             <div className="grid grid-cols-4 gap-2 p-3 border-b border-border/20 text-xs font-mono text-muted-foreground uppercase">
+             <div className="grid grid-cols-4 gap-2 p-3 border-b border-border/20 text-xs text-muted-foreground uppercase">
                 <div className="col-span-1">Domain</div>
                 <div className="col-span-1">Traffic</div>
                 <div className="col-span-1">Primary Source</div>
@@ -156,9 +156,9 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
              {data.competitors.map((comp, i) => (
                 <div key={i} className="grid grid-cols-4 gap-2 p-3 text-sm text-white border-b border-border/10 hover:bg-white/5 transition-colors">
                   <div className="col-span-1 font-semibold truncate">{comp.domain}</div>
-                  <div className="col-span-1 font-mono text-muted-foreground">{comp.traffic}</div>
+                  <div className="col-span-1 text-muted-foreground">{comp.traffic}</div>
                   <div className="col-span-1">
-                    <Badge variant="secondary" className="rounded-none text-[10px] font-normal">
+                    <Badge variant="secondary" className="rounded-lg text-[10px] font-normal">
                       {comp.trafficSource}
                     </Badge>
                   </div>
@@ -173,7 +173,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
         {/* AI Insight Card */}
         <Card className="col-span-1 bg-gradient-to-br from-card to-background border-border rounded-sm h-full">
           <CardHeader className="py-3 px-4 border-b border-border/50">
-             <CardTitle className="text-sm font-medium text-muted-foreground font-mono uppercase flex items-center gap-2">
+             <CardTitle className="text-sm font-medium text-muted-foreground uppercase flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-green-500" />
               Strategic Insight
             </CardTitle>

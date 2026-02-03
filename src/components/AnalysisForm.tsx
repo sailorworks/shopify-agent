@@ -4,23 +4,25 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Search, Loader2, Terminal, ArrowRight } from "lucide-react";
+import { Search, Loader2, Terminal, ArrowRight, Sparkles, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface AnalysisFormProps {
-  onSubmit: (product: string) => void;
+  onSubmit: (product: string, useMockData: boolean) => void;
   isLoading: boolean;
+  shopifyConnected: boolean;
 }
 
 const SAMPLE_PRODUCTS = ["Clay Mask", "Snail Mucin", "Beetroot Scrub"];
 
-export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
+export function AnalysisForm({ onSubmit, isLoading, shopifyConnected }: AnalysisFormProps) {
   const [product, setProduct] = useState("");
+  const [useRealData, setUseRealData] = useState(true);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (product.trim()) {
-      onSubmit(product.trim());
+      onSubmit(product.trim(), !useRealData);
     }
   };
 
@@ -40,7 +42,17 @@ export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
             Store Insights
           </CardTitle>
           <CardDescription className="text-muted-foreground text-xs uppercase tracking-wider">
-             Validate Demand • Analyze Rivals • Execute Strategy
+            {shopifyConnected ? (
+              <>
+                <ShoppingBag className="inline h-3 w-3 mr-1" />
+                Shopify Connected • Full Analysis Mode
+              </>
+            ) : (
+              <>
+                <Sparkles className="inline h-3 w-3 mr-1" />
+                Lite Mode • Enter Product Keyword Below
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-10 px-8">
@@ -49,12 +61,42 @@ export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="text"
-                placeholder="ENTER PRODUCT NAME OR SKU..."
+                placeholder={
+                  shopifyConnected
+                    ? "ENTER PRODUCT NAME OR SELECT FROM STORE..."
+                    : "ENTER PRODUCT KEYWORD TO ANALYZE..."
+                }
                 value={product}
                 onChange={(e) => setProduct(e.target.value)}
                 className="pl-10 h-14 bg-background border-input rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-sm uppercase placeholder:text-muted-foreground/50 transition-all"
                 disabled={isLoading}
               />
+            </div>
+
+            {/* Analysis Mode Toggle */}
+            <div className="flex items-center justify-center gap-4 py-2">
+              <button
+                type="button"
+                onClick={() => setUseRealData(true)}
+                className={`text-xs uppercase tracking-wide px-4 py-2 rounded-lg transition-all ${
+                  useRealData
+                    ? "bg-primary text-black font-semibold"
+                    : "bg-white/5 text-muted-foreground hover:text-white"
+                }`}
+              >
+                🔴 Live Data
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseRealData(false)}
+                className={`text-xs uppercase tracking-wide px-4 py-2 rounded-lg transition-all ${
+                  !useRealData
+                    ? "bg-primary text-black font-semibold"
+                    : "bg-white/5 text-muted-foreground hover:text-white"
+                }`}
+              >
+                🟡 Demo Data
+              </button>
             </div>
 
             <Button
@@ -65,7 +107,7 @@ export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing Data...
+                  {useRealData ? "Analyzing with Jungle Scout & Semrush..." : "Processing Demo..."}
                 </>
               ) : (
                 <>

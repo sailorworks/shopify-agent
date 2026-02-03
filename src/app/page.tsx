@@ -1,18 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnalysisForm } from "@/components/AnalysisForm";
 import { ResultsDashboard } from "@/components/ResultsDashboard";
+import { Onboarding } from "@/components/Onboarding";
+import { useConnections } from "@/hooks/useConnections";
 import { ProductData } from "@/lib/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
+import { Settings, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+type AppView = "onboarding" | "analysis" | "results";
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(false);
+  const { connections, isLoading: connectionsLoading, refresh } = useConnections();
+  const [view, setView] = useState<AppView>("onboarding");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<ProductData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyze = async (product: string) => {
-    setIsLoading(true);
+  // Skip onboarding if already connected
+  useEffect(() => {
+    if (connections?.canAnalyze && view === "onboarding") {
+      // Don't auto-skip - let user see their connections
+    }
+  }, [connections, view]);
+
+  const handleOnboardingComplete = () => {
+    setView("analysis");
+  };
+
+  const handleAnalyze = async (product: string, useMockData: boolean) => {
+    setIsAnalyzing(true);
     setError(null);
     setResult(null);
 
@@ -20,7 +39,7 @@ export default function Home() {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product }),
+        body: JSON.stringify({ product, useMockData }),
       });
 
       if (!response.ok) {
@@ -29,45 +48,119 @@ export default function Home() {
 
       const data = await response.json();
       setResult(data);
+      setView("results");
     } catch (err) {
       setError("Something went wrong. Please try again.");
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
   const handleReset = () => {
     setResult(null);
     setError(null);
+    setView("analysis");
+  };
+
+  const handleBackToOnboarding = () => {
+    refresh();
+    setView("onboarding");
   };
 
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black">
-      {/* Grid Pattern Background - Subtle */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20" 
-           style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+      {/* Grid Pattern Background */}
+      <div
+        className="fixed inset-0 overflow-hidden pointer-events-none opacity-20"
+        style={{
+          backgroundImage:
+            "linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
       ></div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header - Only visible on front page or as a small nav on dashboard */}
+        {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`flex items-center justify-between mb-12 ${result ? 'hidden' : ''}`} // Hide main header when results are shown to save space
+          className={`flex items-center justify-between mb-12 ${
+            view === "results" ? "hidden" : ""
+          }`}
         >
-           <div className="flex items-center gap-2">
-             <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-             <span className="text-sm tracking-widest uppercase">Shopify Agent v0.1</span>
-           </div>
-           <div className="text-xs text-muted-foreground">
-             SYSTEM STATUS: <span className="text-primary">ONLINE</span>
-           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
+            <span className="text-sm tracking-widest uppercase">Shopify Agent v0.2</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {view === "analysis" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToOnboarding}
+                className="text-xs uppercase tracking-wide"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Connections
+              </Button>
+            )}
+            <div className="text-xs text-muted-foreground">
+              STATUS:{" "}
+              {connectionsLoading ? (
+                <span className="text-yellow-500">LOADING</span>
+              ) : connections?.canAnalyze ? (
+                <span className="text-primary">READY</span>
+              ) : (
+                <span className="text-red-500">SETUP REQUIRED</span>
+              )}
+            </div>
+          </div>
         </motion.header>
 
         {/* Main Content */}
         <AnimatePresence mode="wait">
-          {result ? (
+          {view === "onboarding" && (
+            <motion.div
+              key="onboarding"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center min-h-[60vh]"
+            >
+              <Onboarding onComplete={handleOnboardingComplete} />
+            </motion.div>
+          )}
+
+          {view === "analysis" && (
+            <motion.div
+              key="analysis"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center min-h-[60vh]"
+            >
+              <div className="w-full">
+                <AnalysisForm
+                  onSubmit={handleAnalyze}
+                  isLoading={isAnalyzing}
+                  shopifyConnected={connections?.shopifyConnected ?? false}
+                />
+
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-red-500 text-center mt-6 text-sm border border-red-900/50 bg-red-900/10 py-2 max-w-xl mx-auto"
+                  >
+                    [ERROR]: {error}
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {view === "results" && result && (
             <motion.div
               key="results"
               initial={{ opacity: 0 }}
@@ -75,29 +168,16 @@ export default function Home() {
               exit={{ opacity: 0 }}
               className="w-full"
             >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                className="mb-4 text-xs uppercase tracking-wide"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                New Analysis
+              </Button>
               <ResultsDashboard data={result} onReset={handleReset} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="form"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center min-h-[60vh]"
-            >
-              <div className="w-full">
-                <AnalysisForm onSubmit={handleAnalyze} isLoading={isLoading} />
-                
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-red-500 text-center mt-6 text-sm border border-red-900/50 bg-red-900/10 py-2"
-                  >
-                    [ERROR]: {error}
-                  </motion.div>
-                )}
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -114,7 +194,14 @@ export default function Home() {
               Powered by <span className="text-white">Composio</span> • Jungle Scout • Semrush
             </div>
             <div>
-              Env: <span className="text-yellow-500">Dev / Mock</span>
+              Mode:{" "}
+              {connections?.shopifyConnected ? (
+                <span className="text-primary">Full</span>
+              ) : connections?.canAnalyze ? (
+                <span className="text-yellow-500">Lite</span>
+              ) : (
+                <span className="text-red-500">Setup</span>
+              )}
             </div>
           </div>
         </motion.footer>

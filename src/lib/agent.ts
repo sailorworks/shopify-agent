@@ -29,6 +29,28 @@ Your goal is to help the user identify high-potential products and discover thei
 
 **CRITICAL: Today's date is ${todayStr}. Use this for all date calculations.**
 
+═══════════════════════════════════════════════════════════════════════════════
+⚠️  MANDATORY EXECUTION ORDER - READ THIS FIRST ⚠️
+═══════════════════════════════════════════════════════════════════════════════
+
+You MUST follow this STRICT SEQUENTIAL order. DO NOT skip steps or batch calls:
+
+1. FIRST: Complete ALL Jungle Scout calls and get results
+2. THEN: Evaluate the revenue data you received
+3. DECISION POINT: If revenue < $10,000/month → STOP and report low demand
+
+🚫 CRITICAL TOOL RESTRICTIONS:
+- NEVER use COMPOSIO_REMOTE_BASH_TOOL - it is forbidden for this workflow
+- NEVER use COMPOSIO_REMOTE_WORKBENCH - it is forbidden for this workflow
+- ONLY use: COMPOSIO_SEARCH_TOOLS and COMPOSIO_MULTI_EXECUTE_TOOL
+4. ONLY IF revenue > $10,000/month → THEN call Semrush tools
+
+🚫 FORBIDDEN: Do NOT call Semrush tools until you have CONFIRMED demand via Jungle Scout
+🚫 FORBIDDEN: Do NOT batch Jungle Scout and Semrush calls in the same step
+🚫 FORBIDDEN: Do NOT proceed to competitor analysis if demand validation fails
+
+═══════════════════════════════════════════════════════════════════════════════
+
 Follow this strict workflow:
 
 **Step 1: Extract "Seed" Keywords**
@@ -36,7 +58,7 @@ Follow this strict workflow:
 - Determine the appropriate product category based on the product name.
 - Output: A core keyword (e.g., "Clay Mask") and its category.
 
-**Step 2: Validate Demand (Jungle Scout)**
+**Step 2: Validate Demand (Jungle Scout) - MUST COMPLETE BEFORE STEP 3**
 IMPORTANT: When calling Jungle Scout tools, you MUST include these required parameters:
 
 For JUNGLESCOUT_QUERY_THE_PRODUCT_DATABASE:
@@ -66,20 +88,22 @@ For JUNGLESCOUT_RETRIEVE_SALES_ESTIMATES_DATA:
 - end_date: "${endDateStr}" (yesterday - MUST use this exact date, NOT today)
 - IMPORTANT: Only fetch sales estimates for the TOP 2 products by revenue (to minimize API calls)
 
-Check: Does the top 2 average monthly revenue exceed $10,000?
-Decision: If YES → Proceed to Step 3. If NO → Stop and report low demand.
+⏸️ PAUSE AND EVALUATE HERE:
+Check: Does the top product's monthly revenue exceed $10,000?
+- If NO → STOP IMMEDIATELY. Report "Low Demand Detected" and provide recommendations. DO NOT call Semrush.
+- If YES → Continue to Step 3.
 
-**Step 3: Find "Real" Competitors (Semrush)**
-If demand is validated, find real stores ranking for this keyword.
+**Step 3: Find "Real" Competitors (Semrush) - ONLY IF STEP 2 PASSED**
+If and ONLY if demand is validated (>$10k/month), find real stores ranking for this keyword.
 
-For SEMRUSH_GET_ORGANIC_RESULTS:
+For SEMRUSH_ORGANIC_RESULTS:
 - phrase: The core keyword (e.g., "clay mask")
 - database: "us" (for US market)
 
 Filter out marketplaces: Amazon, Walmart, eBay, Target.
 Focus on finding Direct-To-Consumer (DTC) store domains.
 
-For SEMRUSH_GET_DOMAIN_ORGANIC_SEARCH_KEYWORDS:
+For SEMRUSH_DOMAIN_ORGANIC_SEARCH_KEYWORDS:
 - domain: The competitor domain (e.g., "glamglow.com")
 - database: "us"
 
@@ -88,7 +112,7 @@ Determine: Where do they get traffic - Organic (SEO) or Paid (Ads)?
 **Step 4: The Report**
 Output a clear, actionable summary including:
 - Demand validation result (revenue estimate from Jungle Scout)
-- Top 3 DTC competitors found (excluding marketplaces)
+- Top 3 DTC competitors found (excluding marketplaces) - ONLY if demand was validated
 - Their primary traffic source (Organic vs Paid)
 - Strategic recommendation for the user
 
@@ -99,7 +123,8 @@ CRITICAL REMINDERS:
 - Always include "categories" for product database queries
 - Never use placeholder values like "example_asin" - use real data from previous API responses
 - For dates, ALWAYS use start_date="${startDateStr}" and end_date="${endDateStr}" (end_date must be yesterday, NOT today)
-- If an API call fails, explain the issue and try an alternative approach`;
+- If an API call fails, explain the issue and try an alternative approach
+- NEVER call Semrush tools before completing Jungle Scout demand validation`;
 }
 
 /**
@@ -168,9 +193,16 @@ async function runRealAnalysis(productName: string): Promise<ProductData> {
   const session = await createUserSession(userId);
   
   console.log("🔧 Fetching tools from session...");
-  const tools = await session.tools();
-  console.log(`✅ Loaded ${Object.keys(tools).length} tools`);
-  console.log(`   Tools: ${Object.keys(tools).slice(0, 5).join(", ")}${Object.keys(tools).length > 5 ? "..." : ""}\n`);
+  const allTools = await session.tools();
+  
+  // Filter out tools that confuse the AI and cause it to use wrong execution paths
+  const BLOCKED_TOOLS = ['COMPOSIO_REMOTE_BASH_TOOL', 'COMPOSIO_REMOTE_WORKBENCH'];
+  const tools = Object.fromEntries(
+    Object.entries(allTools).filter(([name]) => !BLOCKED_TOOLS.includes(name))
+  );
+  
+  console.log(`✅ Loaded ${Object.keys(tools).length} tools (filtered from ${Object.keys(allTools).length})`);
+  console.log(`   Tools: ${Object.keys(tools).join(", ")}\n`);
 
   // Track CAPTCHA occurrences
   let captchaDetected = false;
@@ -183,21 +215,48 @@ async function runRealAnalysis(productName: string): Promise<ProductData> {
     system: getSystemPrompt(),
     prompt: `Analyze the competitive landscape for: "${productName}"
     
-Please follow the workflow strictly:
-1. Validate demand using Jungle Scout
-2. If demand is sufficient (>$10k/mo), find DTC competitors using Semrush
-3. Provide a strategic recommendation`,
+IMPORTANT: Follow the SEQUENTIAL workflow strictly:
+1. FIRST: Validate demand using Jungle Scout (MUST complete before Step 2)
+2. EVALUATE: Check if revenue > $10k/month
+3. ONLY IF demand passes: Find DTC competitors using Semrush
+4. Provide a strategic recommendation
+
+Remember: Do NOT call Semrush until you have confirmed demand via Jungle Scout results.`,
     tools,
     stopWhen: stepCountIs(15),
     onStepFinish: (step) => {
       console.log(`\n📍 Step completed:`);
       console.log(`   - Finish reason: ${step.finishReason}`);
       
-      // Log tool calls
+      // Log tool calls with detailed toolkit detection
       if (step.toolCalls && step.toolCalls.length > 0) {
         console.log(`   - Tool calls: ${step.toolCalls.length}`);
-        step.toolCalls.forEach((tc: { toolName: string; toolCallId: string }, idx: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        step.toolCalls.forEach((tc: any, idx: number) => {
           console.log(`     [${idx + 1}] ${tc.toolName} (id: ${tc.toolCallId})`);
+          
+          // Detect and log toolkit-specific calls from args
+          if (tc.args) {
+            const argsStr = JSON.stringify(tc.args);
+            
+            // Check for Jungle Scout tools
+            if (argsStr.includes('JUNGLESCOUT')) {
+              const jsMatch = argsStr.match(/JUNGLESCOUT_[A-Z_]+/g);
+              if (jsMatch) {
+                console.log(`\n   🦁 JUNGLE SCOUT TOOL DETECTED:`);
+                jsMatch.forEach((tool: string) => console.log(`      → ${tool}`));
+              }
+            }
+            
+            // Check for Semrush tools
+            if (argsStr.includes('SEMRUSH')) {
+              const srMatch = argsStr.match(/SEMRUSH_[A-Z_]+/g);
+              if (srMatch) {
+                console.log(`\n   📊 SEMRUSH TOOL DETECTED:`);
+                srMatch.forEach((tool: string) => console.log(`      → ${tool}`));
+              }
+            }
+          }
         });
       } else {
         console.log(`   - Tool calls: NONE`);
@@ -206,11 +265,12 @@ Please follow the workflow strictly:
       // Log tool results and check for CAPTCHA
       if (step.toolResults && step.toolResults.length > 0) {
         console.log(`   - Tool results: ${step.toolResults.length}`);
-        step.toolResults.forEach((tr: { toolName: string; toolCallId: string }, idx: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        step.toolResults.forEach((tr: any, idx: number) => {
           console.log(`     [${idx + 1}] ${tr.toolName} (id: ${tr.toolCallId})`);
           
-          // Check for CAPTCHA - convert entire result to string for checking
-          if (isCaptchaResponse(tr)) {
+          // Check for CAPTCHA
+          if (isCaptchaResponse(tr.result)) {
             captchaDetected = true;
             captchaCount++;
             console.log(`\n⚠️  CAPTCHA DETECTED in response from ${tr.toolName}!`);

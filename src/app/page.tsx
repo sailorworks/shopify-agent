@@ -21,6 +21,29 @@ export default function Home() {
   const [result, setResult] = useState<ProductData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Sync URL with view state
+  useEffect(() => {
+    const path = view === "hero" ? "/" : `/${view === "results" ? "dashboard" : view}`;
+    window.history.pushState({}, "", path);
+  }, [view]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === "/" || path === "") setView("hero");
+      else if (path === "/onboarding") setView("onboarding");
+      else if (path === "/analysis") setView("analysis");
+      else if (path === "/dashboard") setView("results");
+    };
+    window.addEventListener("popstate", handlePopState);
+    
+    // Set initial view based on URL
+    handlePopState();
+    
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   // Skip onboarding if already connected
   useEffect(() => {
     if (connections?.canAnalyze && view === "onboarding") {

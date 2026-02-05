@@ -314,17 +314,17 @@ Remember: Do NOT call Semrush until you have confirmed demand via Jungle Scout r
     };
   }
 
-  return parseAgentResponse(result.text, productName, result.steps);
+  return await parseAgentResponse(result.text, productName, result.steps);
 }
 
 /**
  * Parse the agent's text response into structured ProductData
  */
-function parseAgentResponse(
+async function parseAgentResponse(
   text: string,
   productName: string,
   steps: Array<{ toolCalls?: unknown[] }>
-): ProductData {
+): Promise<ProductData> {
   // Extract key metrics from the response using pattern matching
   const revenueMatch = text.match(/\$[\d,]+(?:k|K)?(?:\/mo|\/month)?/);
   const revenue = revenueMatch ? revenueMatch[0] : "See analysis";
@@ -352,6 +352,9 @@ function parseAgentResponse(
   // Extract competitors mentioned in the response
   const competitors = extractCompetitors(text);
 
+  // Generate chart data via second GPT call
+  const chartData = await generateChartData(text, productName);
+
   // Log steps for debugging
   console.log(`Agent completed with ${steps.length} steps`);
 
@@ -362,8 +365,8 @@ function parseAgentResponse(
     trend,
     opportunityLevel,
     recommendation: text,
-    revenueHistory: [], // Real data would come from Jungle Scout historical API
-    trafficDistribution: [], // Would need additional Semrush calls
+    revenueHistory: chartData.revenueHistory,
+    trafficDistribution: chartData.trafficDistribution,
     competitors,
   };
 }
@@ -398,6 +401,69 @@ function extractCompetitors(text: string): ProductData["competitors"] {
       : ("Organic (SEO)" as const),
     topKeywords: [],
   }));
+}
+
+/**
+ * Generate chart data using a second GPT call
+ * Extracts structured data from the analysis text for visualization
+ */
+async function generateChartData(
+  analysisText: string,
+  productName: string
+): Promise<{
+  revenueHistory: { month: string; value: number }[];
+  trafficDistribution: { name: string; value: number }[];
+}> {
+  console.log("📊 Generating chart data from analysis...");
+
+  try {
+    const result = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: `You are a data extraction assistant. Given a product analysis, extract and generate chart data.
+      
+IMPORTANT: Return ONLY valid JSON, no explanation or markdown.
+
+For revenueHistory: Generate 6 months of estimated market revenue based on any revenue/sales data mentioned.
+- If revenue is mentioned (e.g., "$46,355/month"), use that as the current month and create a realistic trend.
+- If no specific revenue is found, estimate based on demand indicators (high/medium/low).
+- Format: [{"month": "Jan", "value": 35000}, ...]
+
+For trafficDistribution: Estimate where competitors get their traffic based on the analysis.
+- Categories: "Organic SEO", "Marketplaces", "Social Media", "Paid Ads", "Direct"
+- Format: [{"name": "Organic SEO", "value": 45}, ...] (values should sum to 100)
+
+Return this exact JSON structure:
+{
+  "revenueHistory": [...],
+  "trafficDistribution": [...]
+}`,
+      prompt: `Product: ${productName}
+
+Analysis:
+${analysisText.slice(0, 3000)}
+
+Extract chart data from this analysis. Return ONLY JSON.`,
+    });
+
+    // Parse the JSON response
+    const jsonText = result.text.trim();
+    const parsed = JSON.parse(jsonText);
+
+    console.log(`📊 Generated revenue data: ${parsed.revenueHistory?.length || 0} months`);
+    console.log(`📊 Generated traffic data: ${parsed.trafficDistribution?.length || 0} categories`);
+
+    return {
+      revenueHistory: parsed.revenueHistory || [],
+      trafficDistribution: parsed.trafficDistribution || [],
+    };
+  } catch (error) {
+    console.error("Failed to generate chart data:", error);
+    // Return fallback data
+    return {
+      revenueHistory: [],
+      trafficDistribution: [],
+    };
+  }
 }
 
 /**

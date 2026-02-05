@@ -1,7 +1,27 @@
-import Image from "next/image";
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, TrendingUp, Zap } from "lucide-react";
+import dynamic from "next/dynamic";
+import type { ComponentProps } from "react";
+
+// Dynamic import to prevent SSR issues with Three.js
+const ShaderGradientCanvas = dynamic(
+  async () => {
+    const mod = await import("@shadergradient/react");
+    return mod.ShaderGradientCanvas;
+  },
+  { ssr: false }
+);
+
+const ShaderGradient = dynamic(
+  async () => {
+    const mod = await import("@shadergradient/react");
+    return mod.ShaderGradient;
+  },
+  { ssr: false }
+);
 
 interface HeroProps {
   onStart: () => void;
@@ -10,22 +30,47 @@ interface HeroProps {
 export function Hero({ onStart }: HeroProps) {
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
-      {/* Background Effects */}
+      {/* Shader Gradient Background */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src="/shpo.gif"
-          alt="Holographic woman made of green binary code walking with shopping bags"
-          fill
-          className="object-cover opacity-40 mix-blend-screen"
-          priority
-          unoptimized
-        />
-        <div className="absolute inset-0 bg-background/60" />
-      </div>
-
-      <div className="absolute inset-0 z-0 opacity-20">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-green-500/20 rounded-full blur-[80px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px]" />
+        <ShaderGradientCanvas
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <ShaderGradient
+            animate="on"
+            brightness={1.2}
+            cAzimuthAngle={180}
+            cDistance={3.6}
+            cPolarAngle={90}
+            cameraZoom={1}
+          color1="#0d7e37ff"  // Primary green
+color2="#10b981"  // Secondary emerald  
+color3="#047857"  // Darker green
+            envPreset="city"
+            grain="on"
+            lightType="3d"
+            positionX={-1.4}
+            positionY={0}
+            positionZ={0}
+            reflection={0.1}
+            rotationX={0}
+            rotationY={10}
+            rotationZ={50}
+            type="plane"
+            uAmplitude={1}
+            uDensity={1.3}
+            uFrequency={5.5}
+            uSpeed={0.4}
+            uStrength={4}
+            uTime={0}
+            wireframe={false}
+          />
+        </ShaderGradientCanvas>
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">

@@ -10,11 +10,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Settings, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type AppView = "onboarding" | "analysis" | "results";
+import { Hero } from "@/components/Hero";
+
+type AppView = "hero" | "onboarding" | "analysis" | "results";
 
 export default function Home() {
   const { connections, isLoading: connectionsLoading, refresh } = useConnections();
-  const [view, setView] = useState<AppView>("onboarding");
+  const [view, setView] = useState<AppView>("hero");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<ProductData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,10 @@ export default function Home() {
 
   const handleOnboardingComplete = () => {
     setView("analysis");
+  };
+
+  const handleHeroStart = () => {
+    setView("onboarding");
   };
 
   const handleAnalyze = async (product: string, useMockData: boolean) => {
@@ -86,7 +92,7 @@ export default function Home() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className={`flex items-center justify-between mb-12 ${
-            view === "results" ? "hidden" : ""
+            view === "results" || view === "hero" ? "hidden" : ""
           }`}
         >
           <div className="flex items-center gap-2">
@@ -120,6 +126,19 @@ export default function Home() {
 
         {/* Main Content */}
         <AnimatePresence mode="wait">
+          {view === "hero" && (
+            <motion.div
+              key="hero"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -50 }}
+              transition={{ duration: 0.5 }}
+              className="absolute inset-0 z-20 bg-background"
+            >
+              <Hero onStart={handleHeroStart} />
+            </motion.div>
+          )}
+
           {view === "onboarding" && (
             <motion.div
               key="onboarding"
@@ -187,7 +206,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="fixed bottom-0 left-0 w-full p-4 border-t border-border bg-background/80 backdrop-blur-sm"
+          className="fixed bottom-0 left-0 w-full p-4 border-t border-border bg-background/80 backdrop-blur-sm z-50"
         >
           <div className="container mx-auto flex justify-between items-center text-[10px] uppercase text-muted-foreground tracking-widest">
             <div>

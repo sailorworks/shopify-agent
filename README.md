@@ -117,6 +117,16 @@ flowchart TD
 
 Composio with **Tool Router** orchestrates all external API calls. It provides a unified interface to connect, authenticate, and execute tools across multiple services.
 
+### Two-Stage Analysis Process
+
+The agent uses a dual-GPT approach for comprehensive analysis:
+
+1. **Main Analysis** (GPT-4 with Tools): Executes Jungle Scout and Semrush API calls via Composio, validates demand, identifies competitors, and generates strategic recommendations.
+
+2. **Chart Data Extraction** (GPT-4): Parses the analysis text to extract structured data for visualizations (revenue trends, traffic distribution) in JSON format.
+
+This separation ensures clean tool execution while generating UI-ready chart data from unstructured analysis results.
+
 
 
 ## 📁 Project Structure
@@ -237,6 +247,28 @@ Visit [http://localhost:3000](http://localhost:3000)
 | **Snail Mucin** | 🔥 Explosive trend (+200% YoY), huge branding opportunity |
 | **Beetroot Scrub** | ❌ Low demand, recommend pivoting |
 
+
+---
+
+## � Testing
+
+Comprehensive test suite covering all critical paths:
+
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # Generate coverage report
+```
+
+### Test Coverage
+
+- **Unit Tests**: Agent logic, Composio integration, auth helpers, React hooks
+- **Component Tests**: AnalysisForm, ResultsDashboard with user interactions
+- **API Tests**: All route handlers (analyze, auth, connection-status, disconnect)
+- **Integration Tests**: End-to-end workflow validation
+- **Error Handling**: CAPTCHA detection, API failures, network errors
+
+Tests use Vitest with mocked Composio SDK and Vercel AI SDK for isolated, fast execution.
 
 ---
 

@@ -9,7 +9,7 @@ function formatDate(date: Date): string {
 }
 
 // Get system prompt with current date injected
-function getSystemPrompt(): string {
+export function getSystemPrompt(): string {
   const today = new Date();
   
   // Jungle Scout API requires end_date to be at least 1 day ago (not today)
@@ -222,7 +222,7 @@ IMPORTANT: Follow the SEQUENTIAL workflow strictly:
 4. Provide a strategic recommendation
 
 Remember: Do NOT call Semrush until you have confirmed demand via Jungle Scout results.`,
-    tools,
+    tools: tools as any,
     stopWhen: stepCountIs(15),
     onStepFinish: (step) => {
       console.log(`\n📍 Step completed:`);

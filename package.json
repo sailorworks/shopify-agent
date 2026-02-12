@@ -13,7 +13,9 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.20",
     "@ai-sdk/openai": "^3.0.23",
+    "@ai-sdk/react": "^3.0.84",
     "@composio/core": "^0.6.3",
     "@composio/vercel": "^0.6.3",
     "@radix-ui/react-label": "^2.1.8",

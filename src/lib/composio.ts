@@ -1,10 +1,25 @@
 import { Composio } from "@composio/core";
-import { VercelProvider } from "@composio/vercel";
 
-// Initialize Composio SDK with Vercel AI SDK provider
-export const composio = new Composio({
-  apiKey: process.env.COMPOSIO_API_KEY,
-  provider: new VercelProvider(),
+// Lazy initialization - SDK is created on first use, not at import time
+let _composio: Composio | null = null;
+
+export function getComposio(): Composio {
+  if (!_composio) {
+    if (!process.env.COMPOSIO_API_KEY) {
+      throw new Error("COMPOSIO_API_KEY environment variable is not set");
+    }
+    _composio = new Composio({
+      apiKey: process.env.COMPOSIO_API_KEY,
+    });
+  }
+  return _composio;
+}
+
+// For backward compatibility (used in disconnect route)
+export const composio = new Proxy({} as Composio, {
+  get(_, prop) {
+    return (getComposio() as any)[prop];
+  },
 });
 
 // Required toolkits (must be connected to use real analysis)
@@ -20,9 +35,9 @@ export type RequiredToolkit = (typeof REQUIRED_TOOLKITS)[number];
 export type OptionalToolkit = (typeof OPTIONAL_TOOLKITS)[number];
 export type ToolkitSlug = RequiredToolkit | OptionalToolkit;
 
-// Create a session for a user with all toolkits enabled
+// Create a session for a user with specified toolkits enabled
 export async function createUserSession(userId: string) {
-  return composio.create(userId, {
+  return getComposio().create(userId, {
     toolkits: [...ALL_TOOLKITS],
     manageConnections: false, // We handle auth manually via authorize()
   });

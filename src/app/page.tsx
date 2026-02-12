@@ -1,101 +1,104 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { AnalysisForm } from "@/components/AnalysisForm";
-import { ResultsDashboard } from "@/components/ResultsDashboard";
+import { useState, useEffect, useRef, FormEvent } from "react";
+import { useChat } from "@ai-sdk/react";
 import { Onboarding } from "@/components/Onboarding";
+import { ChatMessage } from "@/components/chat/ChatMessage";
+import { ChatInput } from "@/components/chat/ChatInput";
 import { useConnections } from "@/hooks/useConnections";
-import { ProductData } from "@/lib/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, ArrowLeft } from "lucide-react";
+import { Settings, ArrowLeft, LayoutDashboard, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 import { Hero } from "@/components/Hero";
 
-type AppView = "hero" | "onboarding" | "analysis" | "results";
+type AppView = "hero" | "onboarding" | "chat" | "dashboard";
+
+// Helper to extract text from UIMessage parts (newer @ai-sdk/react uses parts instead of content)
+function getMessageText(message: any): string {
+  if (message.content) return message.content;
+  if (message.parts) {
+    return message.parts
+      .filter((p: any) => p.type === "text")
+      .map((p: any) => p.text)
+      .join("");
+  }
+  return "";
+}
 
 export default function Home() {
   const { connections, isLoading: connectionsLoading, refresh } = useConnections();
   const [view, setView] = useState<AppView>("hero");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<ProductData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Chat hook — uses default /api/chat endpoint
+  const {
+    messages,
+    sendMessage,
+    status,
+    setMessages,
+  } = useChat();
+
+  const chatLoading = status === "streaming" || status === "submitted";
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Sync URL with view state
   useEffect(() => {
-    const path = view === "hero" ? "/" : `/${view === "results" ? "dashboard" : view}`;
-    window.history.pushState({}, "", path);
+    const pathMap: Record<AppView, string> = {
+      hero: "/",
+      onboarding: "/onboarding",
+      chat: "/chat",
+      dashboard: "/dashboard",
+    };
+    window.history.pushState({}, "", pathMap[view]);
   }, [view]);
 
-  // Handle browser back/forward navigation
+  // Handle browser back/forward
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
       if (path === "/" || path === "") setView("hero");
       else if (path === "/onboarding") setView("onboarding");
-      else if (path === "/analysis") setView("analysis");
-      else if (path === "/dashboard") setView("results");
+      else if (path === "/chat") setView("chat");
+      else if (path === "/dashboard") setView("dashboard");
     };
     window.addEventListener("popstate", handlePopState);
-    
-    // Set initial view based on URL
     handlePopState();
-    
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Skip onboarding if already connected
-  useEffect(() => {
-    if (connections?.canAnalyze && view === "onboarding") {
-      // Don't auto-skip - let user see their connections
-    }
-  }, [connections, view]);
-
-  const handleOnboardingComplete = () => {
-    setView("analysis");
-  };
-
-  const handleHeroStart = () => {
-    setView("onboarding");
-  };
-
-  const handleAnalyze = async (product: string, useMockData: boolean) => {
-    setIsAnalyzing(true);
-    setError(null);
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product, useMockData }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Analysis failed");
-      }
-
-      const data = await response.json();
-      setResult(data);
-      setView("results");
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
-      console.error(err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleReset = () => {
-    setResult(null);
-    setError(null);
-    setView("analysis");
-  };
-
+  const handleHeroStart = () => setView("onboarding");
+  const handleOnboardingComplete = () => setView("chat");
   const handleBackToOnboarding = () => {
     refresh();
     setView("onboarding");
   };
+  const handleNewChat = () => {
+    setMessages([]);
+    setInput("");
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || chatLoading) return;
+    const text = input.trim();
+    setInput("");
+    sendMessage({ text });
+  };
+
+  // Check if last assistant message has analysis content (for dashboard button)
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
+  const lastAssistantText = lastAssistantMessage ? getMessageText(lastAssistantMessage) : "";
+  const hasAnalysisContent =
+    lastAssistantText &&
+    (lastAssistantText.includes("demand") ||
+      lastAssistantText.includes("competitor") ||
+      lastAssistantText.includes("traffic") ||
+      lastAssistantText.includes("keyword"));
 
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black">
@@ -109,144 +112,229 @@ export default function Home() {
         }}
       ></div>
 
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.header
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`flex items-center justify-between mb-12 ${
-            view === "results" || view === "hero" ? "hidden" : ""
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-            <span className="text-sm tracking-widest uppercase">Shopify Agent v0.2</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {view === "analysis" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToOnboarding}
-                className="text-xs uppercase tracking-wide"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Connections
-              </Button>
-            )}
-            <div className="text-xs text-muted-foreground">
-              STATUS:{" "}
-              {connectionsLoading ? (
-                <span className="text-yellow-500">LOADING</span>
-              ) : connections?.canAnalyze ? (
-                <span className="text-primary">READY</span>
-              ) : (
-                <span className="text-red-500">SETUP REQUIRED</span>
-              )}
+      <div className="relative z-10 flex flex-col h-screen">
+        {/* Header — visible in chat, onboarding, dashboard */}
+        {(view === "chat" || view === "onboarding" || view === "dashboard") && (
+          <motion.header
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/80 backdrop-blur-sm"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-sm tracking-widest uppercase">Shopify Agent v0.2</span>
             </div>
-          </div>
-        </motion.header>
-
-        {/* Main Content */}
-        <AnimatePresence mode="wait">
-          {view === "hero" && (
-            <motion.div
-              key="hero"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -50 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0 z-20 bg-background"
-            >
-              <Hero onStart={handleHeroStart} />
-            </motion.div>
-          )}
-
-          {view === "onboarding" && (
-            <motion.div
-              key="onboarding"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center min-h-[60vh]"
-            >
-              <Onboarding onComplete={handleOnboardingComplete} />
-            </motion.div>
-          )}
-
-          {view === "analysis" && (
-            <motion.div
-              key="analysis"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center min-h-[60vh]"
-            >
-              <div className="w-full">
-                <AnalysisForm
-                  onSubmit={handleAnalyze}
-                  isLoading={isAnalyzing}
-                  shopifyConnected={connections?.shopifyConnected ?? false}
-                />
-
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-red-500 text-center mt-6 text-sm border border-red-900/50 bg-red-900/10 py-2 max-w-xl mx-auto"
-                  >
-                    [ERROR]: {error}
-                  </motion.div>
+            <div className="flex items-center gap-3">
+              {view === "dashboard" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setView("chat")}
+                  className="text-xs uppercase tracking-wide"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Back to Chat
+                </Button>
+              )}
+              {view === "chat" && hasAnalysisContent && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setView("dashboard")}
+                  className="text-xs uppercase tracking-wide"
+                >
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  View Dashboard
+                </Button>
+              )}
+              {view === "chat" && messages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNewChat}
+                  className="text-xs uppercase tracking-wide"
+                >
+                  New Chat
+                </Button>
+              )}
+              {(view === "chat" || view === "onboarding") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToOnboarding}
+                  className="text-xs uppercase tracking-wide"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Connections
+                </Button>
+              )}
+              <div className="text-xs text-muted-foreground">
+                STATUS:{" "}
+                {connectionsLoading ? (
+                  <span className="text-yellow-500">LOADING</span>
+                ) : connections?.canAnalyze ? (
+                  <span className="text-primary">READY</span>
+                ) : (
+                  <span className="text-red-500">SETUP REQUIRED</span>
                 )}
               </div>
-            </motion.div>
-          )}
-
-          {view === "results" && result && (
-            <motion.div
-              key="results"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full"
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="mb-4 text-xs uppercase tracking-wide"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                New Analysis
-              </Button>
-              <ResultsDashboard data={result} onReset={handleReset} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Footer */}
-        <motion.footer
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="fixed bottom-0 left-0 w-full p-4 border-t border-border bg-background/80 backdrop-blur-sm z-50"
-        >
-          <div className="container mx-auto flex justify-between items-center text-[10px] uppercase text-muted-foreground tracking-widest">
-            <div>
-              Powered by <span className="text-white">Composio</span> • Jungle Scout • Semrush
             </div>
-            <div>
-              Mode:{" "}
-              {connections?.shopifyConnected ? (
-                <span className="text-primary">Full</span>
-              ) : connections?.canAnalyze ? (
-                <span className="text-yellow-500">Lite</span>
-              ) : (
-                <span className="text-red-500">Setup</span>
-              )}
+          </motion.header>
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          <AnimatePresence mode="wait">
+            {view === "hero" && (
+              <motion.div
+                key="hero"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, y: -50 }}
+                transition={{ duration: 0.5 }}
+                className="h-full"
+              >
+                <Hero onStart={handleHeroStart} />
+              </motion.div>
+            )}
+
+            {view === "onboarding" && (
+              <motion.div
+                key="onboarding"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center h-full px-4 py-8"
+              >
+                <Onboarding onComplete={handleOnboardingComplete} />
+              </motion.div>
+            )}
+
+            {view === "chat" && (
+              <motion.div
+                key="chat"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col h-full"
+              >
+                {/* Messages area */}
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                  {messages.length === 0 && (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center space-y-4 max-w-md">
+                        <div className="w-16 h-16 mx-auto bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center">
+                          <MessageSquare className="w-8 h-8 text-primary" />
+                        </div>
+                        <h2 className="text-xl font-semibold tracking-tight">
+                          What would you like to analyze?
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          Ask me about any product niche — I&apos;ll use Jungle Scout and Semrush
+                          to find demand data, competitors, and traffic insights.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {messages.map((message) => (
+                    <ChatMessage key={message.id} message={message as any} />
+                  ))}
+
+                  {/* Streaming indicator */}
+                  {chatLoading && messages.length > 0 && (
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                      </div>
+                      <div className="px-4 py-3 bg-card border border-border rounded-2xl">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input area */}
+                <div className="border-t border-border bg-background/80 backdrop-blur-sm px-6 py-4">
+                  <div className="max-w-3xl mx-auto">
+                    <ChatInput
+                      input={input}
+                      setInput={setInput}
+                      isLoading={chatLoading}
+                      onSubmit={handleSubmit}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {view === "dashboard" && (
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full overflow-y-auto px-6 py-8"
+              >
+                <div className="container mx-auto">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setView("chat")}
+                    className="mb-4 text-xs uppercase tracking-wide"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Chat
+                  </Button>
+
+                  {/* Dashboard with latest analysis text */}
+                  <div className="rounded-xl border border-border bg-card p-8 text-center">
+                    <LayoutDashboard className="w-12 h-12 text-primary mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Analysis Dashboard</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Dashboard visualization of your latest analysis results.
+                    </p>
+                    {lastAssistantText && (
+                      <div className="text-left mt-6 prose prose-sm prose-invert max-w-none border-t border-border pt-6">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {lastAssistantText.slice(0, 2000)}
+                          {lastAssistantText.length > 2000 && "..."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Footer — compact */}
+        {view !== "hero" && (
+          <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-2">
+            <div className="container mx-auto flex justify-between items-center text-[10px] uppercase text-muted-foreground tracking-widest">
+              <div>
+                Powered by <span className="text-white">Composio</span> • Jungle Scout • Semrush
+              </div>
+              <div>
+                Mode:{" "}
+                {connections?.shopifyConnected ? (
+                  <span className="text-primary">Full</span>
+                ) : connections?.canAnalyze ? (
+                  <span className="text-yellow-500">Lite</span>
+                ) : (
+                  <span className="text-red-500">Setup</span>
+                )}
+              </div>
             </div>
           </div>
-        </motion.footer>
+        )}
       </div>
     </main>
   );

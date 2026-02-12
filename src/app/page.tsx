@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef, FormEvent } from "react";
+import { useState, useEffect, useRef, useCallback, FormEvent } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Onboarding } from "@/components/Onboarding";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { ResultsDashboard } from "@/components/ResultsDashboard";
 import { useConnections } from "@/hooks/useConnections";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, ArrowLeft, LayoutDashboard, MessageSquare } from "lucide-react";
+import { Settings, ArrowLeft, LayoutDashboard, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/Hero";
+import { ProductData } from "@/lib/mock-data";
 
 type AppView = "hero" | "onboarding" | "chat" | "dashboard";
 
@@ -29,6 +31,8 @@ export default function Home() {
   const { connections, isLoading: connectionsLoading, refresh } = useConnections();
   const [view, setView] = useState<AppView>("hero");
   const [input, setInput] = useState("");
+  const [dashboardData, setDashboardData] = useState<ProductData | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Chat hook — uses default /api/chat endpoint
@@ -100,6 +104,31 @@ export default function Home() {
       lastAssistantText.includes("traffic") ||
       lastAssistantText.includes("keyword"));
 
+  // Parse assistant response into dashboard data when opening dashboard
+  const openDashboard = useCallback(async () => {
+    if (!lastAssistantText) return;
+    setView("dashboard");
+    setDashboardLoading(true);
+    try {
+      const res = await fetch("/api/parse-dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: lastAssistantText, productName: "Analysis" }),
+      });
+      const json = await res.json();
+      if (json.data) {
+        setDashboardData(json.data);
+      } else {
+        setDashboardData(null);
+      }
+    } catch (err) {
+      console.error("Failed to parse dashboard data:", err);
+      setDashboardData(null);
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, [lastAssistantText]);
+
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black">
       {/* Grid Pattern Background */}
@@ -140,7 +169,7 @@ export default function Home() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setView("dashboard")}
+                  onClick={openDashboard}
                   className="text-xs uppercase tracking-wide"
                 >
                   <LayoutDashboard className="h-4 w-4 mr-2" />
@@ -293,22 +322,26 @@ export default function Home() {
                     Back to Chat
                   </Button>
 
-                  {/* Dashboard with latest analysis text */}
-                  <div className="rounded-xl border border-border bg-card p-8 text-center">
-                    <LayoutDashboard className="w-12 h-12 text-primary mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Analysis Dashboard</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Dashboard visualization of your latest analysis results.
-                    </p>
-                    {lastAssistantText && (
-                      <div className="text-left mt-6 prose prose-sm prose-invert max-w-none border-t border-border pt-6">
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {lastAssistantText.slice(0, 2000)}
-                          {lastAssistantText.length > 2000 && "..."}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  {/* Dashboard with parsed analysis data */}
+                  {dashboardLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                      <span className="ml-3 text-sm text-muted-foreground">Parsing analysis data…</span>
+                    </div>
+                  ) : dashboardData ? (
+                    <ResultsDashboard
+                      data={dashboardData}
+                      onReset={() => setView("chat")}
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-border bg-card p-8 text-center">
+                      <LayoutDashboard className="w-12 h-12 text-primary mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Analysis Data</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Run an analysis in chat first, then open the dashboard to visualize results.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

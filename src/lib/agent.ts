@@ -320,7 +320,7 @@ Remember: Do NOT call Semrush until you have confirmed demand via Jungle Scout r
 /**
  * Parse the agent's text response into structured ProductData
  */
-async function parseAgentResponse(
+export async function parseAgentResponse(
   text: string,
   productName: string,
   steps: Array<{ toolCalls?: unknown[] }>

@@ -1,20 +1,6 @@
-import type { ReactElement } from "react";
 import type { ProductData } from "@/lib/mock-data";
 import type { ConnectionSummary } from "@/lib/auth";
 import { vi, expect } from "vitest";
-
-// Type for render options - will be used when @testing-library/react is properly set up
-type RenderOptions = {
-  wrapper?: React.ComponentType<{ children: React.ReactNode }>;
-};
-
-type RenderResult = {
-  container: HTMLElement;
-  baseElement: HTMLElement;
-  debug: (element?: HTMLElement) => void;
-  rerender: (ui: ReactElement) => void;
-  unmount: () => void;
-};
 
 /**
  * Assert that a response is an error with expected status and message
@@ -153,19 +139,6 @@ export function mockFetch(responses: Record<string, unknown>) {
   global.fetch = mockFetchFn as unknown as typeof fetch;
 
   return mockFetchFn;
-}
-
-/**
- * Render a React component with providers for testing
- * Note: This will use @testing-library/react when component tests are implemented
- */
-export function renderWithProviders(
-  ui: ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
-): RenderResult {
-  // Placeholder implementation - will be replaced when @testing-library/react is set up
-  // For now, this function is here for future extensibility
-  throw new Error("renderWithProviders requires @testing-library/react to be properly configured");
 }
 
 /**

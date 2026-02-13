@@ -2,7 +2,7 @@
 
 > **Data-driven product research powered by Composio, Jungle Scout, and Semrush**
 
-An AI-powered competitive analysis agent that transforms your Shopify store into a strategic research hub. Validate product demand, discover real competitors, and get actionable traffic insights, all from a single interface.
+An AI-powered competitive analysis agent that transforms your Shopify store into a strategic research hub. Validate product demand, discover real competitors, and get actionable traffic insights — all through a conversational chat interface.
 
 ---
 
@@ -11,7 +11,7 @@ An AI-powered competitive analysis agent that transforms your Shopify store into
 
 This agent follows a structured **validate-then-analyze** workflow that mimics how successful e-commerce entrepreneurs research products:
 
-1. **Extract Keywords** – Uses your Shopify product catalog as the knowledge base
+1. **Extract Keywords** – Uses your product name as the seed keyword
 2. **Validate Demand** – Checks Amazon sales data via Jungle Scout before deep-diving
 3. **Find Competitors** – Discovers real DTC stores ranking for your keywords via Semrush
 4. **Generate Insights** – Provides actionable recommendations on traffic strategy
@@ -28,67 +28,41 @@ This agent follows a structured **validate-then-analyze** workflow that mimics h
 
 ## 🏗 Architecture
 
+### System Overview
+
 ```mermaid
-flowchart TD
-    subgraph Frontend["🖥️ Next.js Frontend"]
-        UI[Dashboard UI]
-        Form[Analysis Form]
-        Charts[Data Visualizations]
-    end
+flowchart LR
+    User([� User]) --> Hero[Hero Page]
+    Hero --> Onboard[Onboarding]
+    Onboard --> Chat[Chat UI]
 
-    subgraph API["⚡ API Routes"]
-        Analyze["/api/analyze"]
-        Auth["/api/auth/[toolkit]"]
-        Status["/api/connection-status"]
-    end
+    Chat -->|POST /api/chat| Agent[🧠 GPT-4o-mini]
+    Agent -->|streaming| Chat
 
-    subgraph Core["🧠 Agent Core"]
-        Agent[AI Agent - GPT-4]
-        Mock[Mock Data Layer]
-        Real[Real Analysis Mode]
-    end
+    Agent -->|tool calls via MCP| Composio[🔧 Composio]
+    Composio --> JS[(Jungle Scout)]
+    Composio --> SR[(Semrush)]
+    Composio --> SH[(Shopify)]
 
-    subgraph Composio["🔧 Composio Tool Router"]
-        Session[User Session]
-        Tools[Tool Orchestration]
-    end
-
-    subgraph External["🌐 External APIs"]
-        Shopify[(Shopify)]
-        JS[(Jungle Scout)]
-        SR[(Semrush)]
-    end
-
-    UI --> Form
-    Form --> Analyze
-    Analyze --> Agent
-    Agent --> Mock
-    Agent --> Real
-    Real --> Session
-    Session --> Tools
-    Tools --> Shopify
-    Tools --> JS
-    Tools --> SR
-    Agent --> UI
-    Charts --> UI
+    Agent -->|analysis text| ChartGen[📊 Chart Generator]
+    ChartGen --> Dashboard[Results Dashboard]
 
     style Composio fill:#6366f1,stroke:#333,color:#fff
-    style Shopify fill:#96bf48,stroke:#333,color:#000
     style JS fill:#ff9900,stroke:#333,color:#000
     style SR fill:#ff642b,stroke:#333,color:#fff
+    style SH fill:#96bf48,stroke:#333,color:#000
 ```
 
 ### Agent Decision Flow
 
 ```mermaid
-flowchart TD
-    A[Shopify Store] -->|"Extract Product Keywords"| B[Jungle Scout]
-    B -->|"Revenue > $10k?"| Check{Demand Valid?}
-    Check -->|Yes| C[Semrush]
-    Check -->|No| Stop[Stop - Low Demand]
-    C -->|"Analyze Competitors"| D[Actionable Report]
+flowchart LR
+    A[🔑 Product Name] --> B[Jungle Scout\nDemand Check]
+    B --> Check{Revenue\n> $10k/mo?}
+    Check -->|✅ Yes| C[Semrush\nCompetitor Analysis]
+    Check -->|❌ No| Stop[Stop\nLow Demand]
+    C --> D[📋 Report]
 
-    style A fill:#96bf48,stroke:#333,color:#000
     style B fill:#ff9900,stroke:#333,color:#000
     style C fill:#ff642b,stroke:#333,color:#fff
     style D fill:#4a90d9,stroke:#333,color:#fff
@@ -103,11 +77,14 @@ flowchart TD
 |----------|------------|
 | **Framework** | Next.js 14.1 (App Router) |
 | **Language** | TypeScript 5 |
-| **AI/LLM** | OpenAI GPT-4 Turbo via Vercel AI SDK |
-| **Tool Orchestration** | Composio Core + Vercel Provider |
+| **AI/LLM** | OpenAI GPT-4o-mini via Vercel AI SDK (`ai` v6) |
+| **Tool Orchestration** | Composio Core (`@composio/core`) + AI SDK MCP Client (`@ai-sdk/mcp`) |
 | **Styling** | Tailwind CSS + Framer Motion |
 | **Charts** | Recharts |
-| **UI Components** | Radix UI + Custom Components |
+| **UI Components** | Radix UI + shadcn/ui + Lucide Icons |
+| **3D/Visual** | Three.js + ShaderGradient |
+| **Validation** | Zod |
+| **Testing** | Vitest + Testing Library |
 
 
 
@@ -115,19 +92,23 @@ flowchart TD
 
 ## 🔧 How Composio is Used
 
-Composio with **Tool Router** orchestrates all external API calls. It provides a unified interface to connect, authenticate, and execute tools across multiple services.
+Composio acts as a **universal tool gateway** via the **MCP (Model Context Protocol)** standard. It hosts third-party API integrations (Jungle Scout, Semrush, Shopify) behind an MCP server, so the AI model can invoke those APIs as tool calls without any custom API integration code.
 
-### Two-Stage Analysis Process
+### Integration Flow (in `route.ts`)
 
-The agent uses a dual-GPT approach for comprehensive analysis:
+1. **Initialize** — `new Composio({ apiKey })` creates the Composio client
+2. **Create Session** — `composio.create(userId, { toolkits: ["junglescout", "semrush", "shopify"] })` creates a per-user tool session and returns an MCP endpoint URL + auth headers
+3. **Connect MCP** — `experimental_createMCPClient({ transport: { type: "http", url, headers } })` connects to Composio's MCP server using the Vercel AI SDK
+4. **Fetch Tools** — `client.tools()` retrieves all available tool definitions from the MCP server
+5. **Stream** — Tools are passed into `streamText({ tools: mcpTools })` so the LLM can autonomously call Jungle Scout/Semrush during its reasoning loop
 
-1. **Main Analysis** (GPT-4 with Tools): Executes Jungle Scout and Semrush API calls via Composio, validates demand, identifies competitors, and generates strategic recommendations.
+### Two-Stage Analysis
 
-2. **Chart Data Extraction** (GPT-4): Parses the analysis text to extract structured data for visualizations (revenue trends, traffic distribution) in JSON format.
+1. **Main Analysis** (GPT-4o-mini with tools, streaming): Executes Jungle Scout and Semrush API calls via Composio MCP, validates demand, identifies competitors, and generates strategic recommendations.
 
-This separation ensures clean tool execution while generating UI-ready chart data from unstructured analysis results.
+2. **Chart Data Extraction** (GPT-4o-mini, non-streaming): Parses the analysis text to extract structured JSON data for visualizations (revenue trends, traffic distribution).
 
-
+---
 
 ## 📁 Project Structure
 
@@ -136,26 +117,39 @@ shopify-helper-agent/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── analyze/route.ts       # Product analysis endpoint
-│   │   │   ├── auth/[toolkit]/route.ts # OAuth URL generation
-│   │   │   └── connection-status/route.ts # Check toolkit connections
-│   │   ├── globals.css                # Global styles
-│   │   ├── layout.tsx                 # Root layout
-│   │   └── page.tsx                   # Main dashboard page
+│   │   │   ├── analyze/route.ts              # Product analysis endpoint
+│   │   │   ├── auth/[toolkit]/route.ts       # OAuth URL generation
+│   │   │   ├── chat/route.ts                 # Main chat endpoint (streaming, MCP)
+│   │   │   ├── connection-status/route.ts    # Check toolkit connections
+│   │   │   ├── disconnect/[toolkit]/route.ts # Disconnect a toolkit
+│   │   │   └── parse-dashboard/route.ts      # Parse agent output for dashboard
+│   │   ├── globals.css                       # Global styles
+│   │   ├── layout.tsx                        # Root layout
+│   │   └── page.tsx                          # Main page (Hero → Onboarding → Chat)
 │   ├── components/
-│   │   ├── AnalysisForm.tsx          # Product input form
-│   │   ├── CompetitorCard.tsx        # Competitor display card
-│   │   ├── DashboardCharts.tsx       # Revenue & traffic charts
-│   │   ├── DemandIndicator.tsx       # Demand score visualization
-│   │   ├── ResultsDashboard.tsx      # Main results display
-│   │   └── ui/                       # Reusable UI components
+│   │   ├── AnalysisForm.tsx                  # Product input form
+│   │   ├── CompetitorCard.tsx                # Competitor display card
+│   │   ├── DashboardCharts.tsx               # Revenue & traffic charts
+│   │   ├── DemandIndicator.tsx               # Demand score visualization
+│   │   ├── Hero.tsx                          # Landing hero section
+│   │   ├── Onboarding.tsx                    # Toolkit connection wizard
+│   │   ├── ResultsDashboard.tsx              # Main results display
+│   │   ├── chat/
+│   │   │   ├── ChatInput.tsx                 # Chat input component
+│   │   │   └── ChatMessage.tsx               # Chat message renderer
+│   │   └── ui/                               # Reusable UI components (shadcn/ui)
+│   ├── hooks/
+│   │   └── useConnections.ts                 # Toolkit connection status hook
 │   └── lib/
-│       ├── agent.ts                  # AI agent logic & prompts
-│       ├── auth.ts                   # Composio auth helpers
-│       ├── composio.ts               # Composio SDK initialization
-│       ├── mock-data.ts              # Mock data for MVP phase
-│       └── utils.ts                  # Utility functions
-├── .env.example                      # Environment variables template
+│       ├── agent.ts                          # AI agent logic, system prompt & chart generation
+│       ├── auth.ts                           # Composio auth helpers
+│       ├── composio.ts                       # Composio SDK initialization
+│       ├── mock-data.ts                      # Mock data & TypeScript types
+│       └── utils.ts                          # Utility functions
+├── __tests__/                                # Test suite (Vitest)
+├── .env.example                              # Environment variables template
+├── next.config.js                            # Next.js + Webpack config
+├── vitest.config.ts                          # Vitest configuration
 ├── package.json
 ├── tailwind.config.ts
 └── tsconfig.json
@@ -189,7 +183,7 @@ cp .env.example .env
 Edit `.env` with your credentials:
 
 ```env
-# Composio - Tool Router
+# Composio - MCP Tool Gateway
 COMPOSIO_API_KEY=your_composio_api_key
 
 # OpenAI - Agent LLM
@@ -198,21 +192,23 @@ OPENAI_API_KEY=your_openai_api_key
 # App URL (for OAuth callbacks)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# User ID (for demo/MVP)
+# User ID (for demo/MVP - in production this comes from auth)
 DEFAULT_USER_ID=shopify_demo_user
 ```
 
 ### 3. Connect Toolkits 
 
 ```bash
-# Install Composio CLI
-pip install composio-core composio-openai
+# Install Composio CLI (Python-based, only needed for initial toolkit auth)
+pip install composio-core
 
 # Authenticate toolkits
 composio add shopify
 composio add junglescout
 composio add semrush
 ```
+
+> **Note:** The CLI is only used for one-time toolkit authentication. The app itself uses the JavaScript SDK (`@composio/core`).
 
 ### 4. Run Development Server
 
@@ -226,20 +222,18 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## 📖 Usage
 
-### Basic Analysis (Mock Mode)
+### User Flow
 
-1. Open the website
-2. Enter a product name in the input field:
-   - Try: `Clay Mask`, `Snail Mucin`, `Beetroot Scrub`
-3. Click **Analyze**
-4. View the results dashboard with:
-   - Demand Score & Trend
-   - Revenue Estimate
-   - Competitor Cards
-   - Traffic Distribution Chart
-   - Strategic Recommendation
+1. **Hero Page** — Land on the animated hero section, click "Get Started"
+2. **Onboarding** — Connect your Jungle Scout, Semrush, and Shopify toolkits via OAuth
+3. **Chat** — Enter a product name (e.g., "Clay Mask") in the chat interface
+4. **Analysis** — The agent streams its analysis in real-time:
+   - Validates demand via Jungle Scout
+   - Finds DTC competitors via Semrush (only if demand > $10k/mo)
+   - Generates a strategic recommendation
+5. **Dashboard** — View visualized results with revenue charts, traffic distribution, and competitor cards
 
-### Sample Products for Demo
+### Sample Products
 
 | Product | Expected Result |
 |---------|-----------------|
@@ -250,13 +244,14 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## � Testing
+## 🧪 Testing
 
 Comprehensive test suite covering all critical paths:
 
 ```bash
 npm test              # Run all tests
-npm run test:watch    # Watch mode
+npm run test:ci       # Run tests (CI mode, no watch)
+npm run test:ui       # Vitest UI
 npm run test:coverage # Generate coverage report
 ```
 
@@ -264,7 +259,7 @@ npm run test:coverage # Generate coverage report
 
 - **Unit Tests**: Agent logic, Composio integration, auth helpers, React hooks
 - **Component Tests**: AnalysisForm, ResultsDashboard with user interactions
-- **API Tests**: All route handlers (analyze, auth, connection-status, disconnect)
+- **API Tests**: All route handlers (analyze, auth, chat, connection-status, disconnect)
 - **Integration Tests**: End-to-end workflow validation
 - **Error Handling**: CAPTCHA detection, API failures, network errors
 

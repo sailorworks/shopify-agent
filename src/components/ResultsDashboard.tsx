@@ -36,7 +36,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
             Back
           </Button>
           <h1 className="text-2xl tracking-tight text-white uppercase">
-            {data.name} <span className="text-muted-foreground">// Analysis</span>
+            {data.name} <span className="text-muted-foreground">{'// Analysis'}</span>
           </h1>
         </div>
         <Badge 

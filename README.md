@@ -196,21 +196,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 DEFAULT_USER_ID=shopify_demo_user
 ```
 
-### 3. Connect Toolkits 
 
-```bash
-# Install Composio CLI (Python-based, only needed for initial toolkit auth)
-pip install composio-core
-
-# Authenticate toolkits
-composio add shopify
-composio add junglescout
-composio add semrush
-```
-
-> **Note:** The CLI is only used for one-time toolkit authentication. The app itself uses the JavaScript SDK (`@composio/core`).
-
-### 4. Run Development Server
+### 3. Run Development Server
 
 ```bash
 npm run dev

@@ -17,7 +17,7 @@ const ANALYSIS_STEPS = [
 ];
 
 interface AnalysisFormProps {
-  onSubmit: (product: string, useMockData: boolean) => void;
+  onSubmit: (product: string) => void;
   isLoading: boolean;
   shopifyConnected: boolean;
 }
@@ -26,7 +26,6 @@ const SAMPLE_PRODUCTS = ["Clay Mask", "Snail Mucin", "Beetroot Scrub"];
 
 export function AnalysisForm({ onSubmit, isLoading, shopifyConnected }: AnalysisFormProps) {
   const [product, setProduct] = useState("");
-  const [useRealData, setUseRealData] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
 
   // Simulate step progression when loading
@@ -50,7 +49,7 @@ export function AnalysisForm({ onSubmit, isLoading, shopifyConnected }: Analysis
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (product.trim()) {
-      onSubmit(product.trim(), !useRealData);
+      onSubmit(product.trim());
     }
   };
 
@@ -201,31 +200,7 @@ export function AnalysisForm({ onSubmit, isLoading, shopifyConnected }: Analysis
                     />
                   </div>
 
-                  {/* Analysis Mode Toggle */}
-                  <div className="flex items-center justify-center gap-4 py-2">
-                    <button
-                      type="button"
-                      onClick={() => setUseRealData(true)}
-                      className={`text-xs uppercase tracking-wide px-4 py-2 rounded-lg transition-all ${
-                        useRealData
-                          ? "bg-primary text-black font-semibold"
-                          : "bg-white/5 text-muted-foreground hover:text-white"
-                      }`}
-                    >
-                      🔴 Live Data
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setUseRealData(false)}
-                      className={`text-xs uppercase tracking-wide px-4 py-2 rounded-lg transition-all ${
-                        !useRealData
-                          ? "bg-primary text-black font-semibold"
-                          : "bg-white/5 text-muted-foreground hover:text-white"
-                      }`}
-                    >
-                      🟡 Demo Data
-                    </button>
-                  </div>
+
 
                   <Button
                     type="submit"

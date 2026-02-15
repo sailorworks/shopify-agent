@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Globe, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import { Competitor } from "@/lib/mock-data";
+import { Competitor } from "@/lib/types";
 
 interface CompetitorCardProps {
   competitor: Competitor;

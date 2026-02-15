@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { ProductData } from "./mock-data";
+import { ProductData } from "./types";
 
 // Helper to format date as YYYY-MM-DD
 function formatDate(date: Date): string {

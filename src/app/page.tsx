@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Settings, ArrowLeft, LayoutDashboard, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/Hero";
-import { ProductData } from "@/lib/mock-data";
+import { ProductData } from "@/lib/types";
 
 type AppView = "hero" | "onboarding" | "chat" | "dashboard";
 

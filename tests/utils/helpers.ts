@@ -1,4 +1,4 @@
-import type { ProductData } from "@/lib/mock-data";
+import type { ProductData } from "@/lib/types";
 import type { ConnectionSummary } from "@/lib/auth";
 import { vi, expect } from "vitest";
 

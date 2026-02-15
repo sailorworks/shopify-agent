@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ProductData } from "@/lib/mock-data";
+import { ProductData } from "@/lib/types";
 import { motion } from "framer-motion";
 import { ArrowLeft, TrendingUp, Users, AlertCircle, DollarSign, Activity, ChevronDown } from "lucide-react";
 import { RevenueTrendChart, TrafficSourceChart } from "./DashboardCharts";

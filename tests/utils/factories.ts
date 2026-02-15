@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { ProductData, Competitor } from "@/lib/mock-data";
+import type { ProductData, Competitor } from "@/lib/types";
 import type { ConnectionStatus, ConnectionSummary } from "@/lib/auth";
 
 /**

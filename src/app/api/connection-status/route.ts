@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getConnectionStatus } from "@/lib/auth";
 import { getUserId } from "@/lib/composio";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const userId = getUserId();

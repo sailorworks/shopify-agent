@@ -117,7 +117,7 @@ shopify-helper-agent/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── analyze/route.ts              # Product analysis endpoint
+
 │   │   │   ├── auth/[toolkit]/route.ts       # OAuth URL generation
 │   │   │   ├── chat/route.ts                 # Main chat endpoint (streaming, MCP)
 │   │   │   ├── connection-status/route.ts    # Check toolkit connections
@@ -127,7 +127,6 @@ shopify-helper-agent/
 │   │   ├── layout.tsx                        # Root layout
 │   │   └── page.tsx                          # Main page (Hero → Onboarding → Chat)
 │   ├── components/
-│   │   ├── AnalysisForm.tsx                  # Product input form
 │   │   ├── CompetitorCard.tsx                # Competitor display card
 │   │   ├── DashboardCharts.tsx               # Revenue & traffic charts
 │   │   ├── DemandIndicator.tsx               # Demand score visualization
@@ -144,9 +143,12 @@ shopify-helper-agent/
 │       ├── agent.ts                          # AI agent logic, system prompt & chart generation
 │       ├── auth.ts                           # Composio auth helpers
 │       ├── composio.ts                       # Composio SDK initialization
-│       ├── mock-data.ts                      # Mock data & TypeScript types
+│       ├── types.ts                          # TypeScript types & interfaces
 │       └── utils.ts                          # Utility functions
-├── __tests__/                                # Test suite (Vitest)
+├── tests/                                    # Test suite (Vitest)
+│   ├── api/                                  # API route handler tests
+│   ├── lib/                                  # Agent & library tests
+│   └── utils/                                # Test utilities & helpers
 ├── .env.example                              # Environment variables template
 ├── next.config.js                            # Next.js + Webpack config
 ├── vitest.config.ts                          # Vitest configuration

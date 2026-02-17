@@ -18,7 +18,7 @@ export function getComposio(): Composio {
 // For backward compatibility (used in disconnect route)
 export const composio = new Proxy({} as Composio, {
   get(_, prop) {
-    return (getComposio() as any)[prop];
+    return (getComposio() as unknown as Record<string | symbol, unknown>)[prop];
   },
 });
 

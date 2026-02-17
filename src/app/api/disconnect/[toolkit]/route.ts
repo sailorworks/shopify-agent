@@ -46,7 +46,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         error: "Failed to disconnect",
-        details: error instanceof Error ? error.message : String(error),
+        details: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.message : String(error)) : undefined,
       },
       { status: 500 }
     );

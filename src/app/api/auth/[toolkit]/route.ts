@@ -33,7 +33,7 @@ export async function GET(
     return NextResponse.json(
       {
         error: "Failed to generate auth URL",
-        details: error instanceof Error ? error.message : String(error),
+        details: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.message : String(error)) : undefined,
       },
       { status: 500 }
     );

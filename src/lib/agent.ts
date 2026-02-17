@@ -185,7 +185,7 @@ export async function parseAgentResponse(
  */
 function extractCompetitors(text: string): ProductData["competitors"] {
   // Simple extraction - look for domain patterns
-  const domainPattern = /([a-zA-Z0-9-]+\.com)/g;
+  const domainPattern = /([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/g;
   const domains = text.match(domainPattern) || [];
 
   // Filter out common non-competitor domains

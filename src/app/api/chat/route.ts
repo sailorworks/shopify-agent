@@ -1,4 +1,4 @@
-import { Composio } from "@composio/core";
+
 import {
   convertToModelMessages,
   stepCountIs,
@@ -7,7 +7,7 @@ import {
 import { openai } from "@ai-sdk/openai";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
-import { getUserId } from "@/lib/composio";
+import { getUserId, getComposio } from "@/lib/composio";
 import { getSystemPrompt } from "@/lib/agent";
 
 export const maxDuration = 120;
@@ -57,9 +57,7 @@ export async function POST(req: Request) {
     const { messages } = body;
 
     // Create per-user Composio session with MCP
-    const composio = new Composio({
-      apiKey: process.env.COMPOSIO_API_KEY,
-    });
+    const composio = getComposio();
 
     const toolSession = await composio.create(userId, {
       toolkits: ["junglescout", "semrush", "shopify"],

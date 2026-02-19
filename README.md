@@ -4,6 +4,8 @@
 
 An AI-powered competitive analysis agent that transforms your Shopify store into a strategic research hub. Validate product demand, discover real competitors, and get actionable traffic insights — all through a conversational chat interface.
 
+![Shopify Agent Demo](./public/shopifydemo.gif)
+
 ---
 
 

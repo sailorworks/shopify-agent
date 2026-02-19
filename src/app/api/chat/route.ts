@@ -7,7 +7,8 @@ import {
 import { openai } from "@ai-sdk/openai";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
-import { getUserId, getComposio } from "@/lib/composio";
+import { getComposio } from "@/lib/composio";
+import { getUserIdFromRequest } from "@/lib/user-session";
 import { getSystemPrompt } from "@/lib/agent";
 
 export const maxDuration = 120;
@@ -38,7 +39,7 @@ const chatRequestSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const userId = getUserId();
+  const userId = await getUserIdFromRequest();
 
   if (!checkRateLimit(userId)) {
     return new Response("Too Many Requests", { status: 429 });

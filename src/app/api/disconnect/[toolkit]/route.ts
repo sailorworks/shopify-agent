@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { composio, getUserId, ALL_TOOLKITS, ToolkitSlug } from "@/lib/composio";
+import { composio, ALL_TOOLKITS, ToolkitSlug } from "@/lib/composio";
+import { getUserIdFromRequest } from "@/lib/user-session";
 
 export async function DELETE(
   request: NextRequest,
@@ -16,7 +17,7 @@ export async function DELETE(
       );
     }
 
-    const userId = getUserId();
+    const userId = await getUserIdFromRequest();
     
     // Get connected accounts and delete the one for this toolkit
     const connectedAccounts = await composio.connectedAccounts.list({

@@ -29,7 +29,18 @@ vi.mock("ai", async (importOriginal) => {
 
 // 3. Mock internal modules
 vi.mock("@/lib/composio", () => ({
-  getUserId: vi.fn(() => "test-user-id"),
+  getComposio: vi.fn(() => ({
+    create: vi.fn().mockResolvedValue({
+      mcp: {
+        url: "http://mock-mcp-url",
+        headers: { Authorization: "Bearer test" },
+      },
+    }),
+  })),
+}));
+
+vi.mock("@/lib/user-session", () => ({
+  getUserIdFromRequest: vi.fn(() => Promise.resolve("test-user-id")),
 }));
 
 vi.mock("@/lib/agent", () => ({
@@ -101,7 +112,9 @@ describe("POST /api/chat", () => {
   });
 
   it("should return 500 when Composio crashes", async () => {
-    (Composio as any).mockImplementation(() => {
+    // Override getComposio to throw
+    const composioModule = await import("@/lib/composio");
+    vi.mocked(composioModule.getComposio).mockImplementation(() => {
       throw new Error("Composio API Down");
     });
 

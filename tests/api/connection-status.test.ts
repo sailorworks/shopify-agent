@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GET } from '@/app/api/connection-status/route'
 import * as auth from '@/lib/auth'
-import * as composio from '@/lib/composio'
+import * as userSession from '@/lib/user-session'
 import { createMockConnectionSummary } from '../utils/factories'
 import { assertValidConnectionSummary } from '../utils/helpers'
 
@@ -10,14 +10,14 @@ vi.mock('@/lib/auth', () => ({
   getConnectionStatus: vi.fn(),
 }))
 
-vi.mock('@/lib/composio', () => ({
-  getUserId: vi.fn(),
+vi.mock('@/lib/user-session', () => ({
+  getUserIdFromRequest: vi.fn(),
 }))
 
 describe('GET /api/connection-status', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(composio.getUserId).mockReturnValue('test-user-id')
+    vi.mocked(userSession.getUserIdFromRequest).mockResolvedValue('test-user-id')
   })
 
   it('should return valid ConnectionSummary', async () => {
@@ -39,7 +39,7 @@ describe('GET /api/connection-status', () => {
   it('should include userId in response', async () => {
     const mockSummary = createMockConnectionSummary()
     vi.mocked(auth.getConnectionStatus).mockResolvedValue(mockSummary)
-    vi.mocked(composio.getUserId).mockReturnValue('custom-user-123')
+    vi.mocked(userSession.getUserIdFromRequest).mockResolvedValue('custom-user-123')
 
     const response = await GET()
     const data = await response.json()
@@ -50,6 +50,7 @@ describe('GET /api/connection-status', () => {
   })
 
   it('should handle errors when getConnectionStatus throws', async () => {
+    vi.stubEnv("NODE_ENV", "development")
     const errorMessage = 'Failed to fetch connection status'
     vi.mocked(auth.getConnectionStatus).mockRejectedValue(new Error(errorMessage))
 

@@ -42,8 +42,3 @@ export async function createUserSession(userId: string) {
     manageConnections: false, // We handle auth manually via authorize()
   });
 }
-
-// Get user ID - in production this would come from auth
-export function getUserId(): string {
-  return process.env.DEFAULT_USER_ID || "shopify_demo_user";
-}

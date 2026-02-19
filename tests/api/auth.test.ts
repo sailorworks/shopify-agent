@@ -1,22 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GET } from '@/app/api/auth/[toolkit]/route'
+import type { NextRequest } from 'next/server'
 import * as auth from '@/lib/auth'
-import * as composio from '@/lib/composio'
+import * as userSession from '@/lib/user-session'
 
 // Mock the modules
 vi.mock('@/lib/auth', () => ({
   getAuthUrl: vi.fn(),
 }))
 
+vi.mock('@/lib/user-session', () => ({
+  getUserIdFromRequest: vi.fn(),
+}))
+
 vi.mock('@/lib/composio', () => ({
-  getUserId: vi.fn(),
   ALL_TOOLKITS: ['junglescout', 'semrush', 'shopify'],
 }))
 
 describe('GET /api/auth/[toolkit]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(composio.getUserId).mockReturnValue('test-user-id')
+    vi.mocked(userSession.getUserIdFromRequest).mockResolvedValue('test-user-id')
   })
 
   it('should return auth URL for junglescout toolkit', async () => {
@@ -24,7 +28,7 @@ describe('GET /api/auth/[toolkit]', () => {
     vi.mocked(auth.getAuthUrl).mockResolvedValue(mockAuthUrl)
 
     const params = Promise.resolve({ toolkit: 'junglescout' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -41,7 +45,7 @@ describe('GET /api/auth/[toolkit]', () => {
     vi.mocked(auth.getAuthUrl).mockResolvedValue(mockAuthUrl)
 
     const params = Promise.resolve({ toolkit: 'semrush' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -58,7 +62,7 @@ describe('GET /api/auth/[toolkit]', () => {
     vi.mocked(auth.getAuthUrl).mockResolvedValue(mockAuthUrl)
 
     const params = Promise.resolve({ toolkit: 'shopify' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -72,7 +76,7 @@ describe('GET /api/auth/[toolkit]', () => {
 
   it('should return 400 error for invalid toolkit name', async () => {
     const params = Promise.resolve({ toolkit: 'invalid-toolkit' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -89,7 +93,7 @@ describe('GET /api/auth/[toolkit]', () => {
     vi.mocked(auth.getAuthUrl).mockResolvedValue(mockAuthUrl)
 
     const params = Promise.resolve({ toolkit: 'junglescout' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -104,11 +108,12 @@ describe('GET /api/auth/[toolkit]', () => {
   })
 
   it('should handle errors when getAuthUrl throws', async () => {
+    vi.stubEnv("NODE_ENV", "development")
     const errorMessage = 'Failed to generate auth URL'
     vi.mocked(auth.getAuthUrl).mockRejectedValue(new Error(errorMessage))
 
     const params = Promise.resolve({ toolkit: 'junglescout' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -120,7 +125,7 @@ describe('GET /api/auth/[toolkit]', () => {
 
   it('should validate toolkit parameter before calling getAuthUrl', async () => {
     const params = Promise.resolve({ toolkit: 'unknown' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await GET(request, { params })
     const data = await response.json()
@@ -131,17 +136,17 @@ describe('GET /api/auth/[toolkit]', () => {
     expect(data.validToolkits).toBeDefined()
   })
 
-  it('should use correct userId from getUserId', async () => {
+  it('should use correct userId from getUserIdFromRequest', async () => {
     const mockAuthUrl = 'https://composio.dev/auth/shopify?token=test'
     vi.mocked(auth.getAuthUrl).mockResolvedValue(mockAuthUrl)
-    vi.mocked(composio.getUserId).mockReturnValue('custom-user-456')
+    vi.mocked(userSession.getUserIdFromRequest).mockResolvedValue('custom-user-456')
 
     const params = Promise.resolve({ toolkit: 'shopify' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     await GET(request, { params })
 
-    expect(composio.getUserId).toHaveBeenCalled()
+    expect(userSession.getUserIdFromRequest).toHaveBeenCalled()
     expect(auth.getAuthUrl).toHaveBeenCalledWith('custom-user-456', 'shopify')
   })
 })

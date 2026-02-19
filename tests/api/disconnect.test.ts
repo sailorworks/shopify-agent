@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DELETE } from '@/app/api/disconnect/[toolkit]/route'
+import type { NextRequest } from 'next/server'
 import * as composio from '@/lib/composio'
+import * as userSession from '@/lib/user-session'
 
 // Mock the composio module
 vi.mock('@/lib/composio', () => ({
@@ -10,14 +12,17 @@ vi.mock('@/lib/composio', () => ({
       delete: vi.fn(),
     },
   },
-  getUserId: vi.fn(),
   ALL_TOOLKITS: ['junglescout', 'semrush', 'shopify'],
+}))
+
+vi.mock('@/lib/user-session', () => ({
+  getUserIdFromRequest: vi.fn(),
 }))
 
 describe('DELETE /api/disconnect/[toolkit]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(composio.getUserId).mockReturnValue('test-user-id')
+    vi.mocked(userSession.getUserIdFromRequest).mockResolvedValue('test-user-id')
   })
 
   it('should successfully disconnect a connected account', async () => {
@@ -29,11 +34,11 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
     
     vi.mocked(composio.composio.connectedAccounts.list).mockResolvedValue({
       items: [mockAccount],
-    })
-    vi.mocked(composio.composio.connectedAccounts.delete).mockResolvedValue(undefined)
+    } as any)
+    vi.mocked(composio.composio.connectedAccounts.delete).mockResolvedValue(undefined as any)
 
     const params = Promise.resolve({ toolkit: 'junglescout' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -52,10 +57,10 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
   it('should return 404 error when no connection found', async () => {
     vi.mocked(composio.composio.connectedAccounts.list).mockResolvedValue({
       items: [],
-    })
+    } as any)
 
     const params = Promise.resolve({ toolkit: 'semrush' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -68,7 +73,7 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
 
   it('should return 400 error for invalid toolkit name', async () => {
     const params = Promise.resolve({ toolkit: 'invalid-toolkit' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -81,6 +86,7 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
   })
 
   it('should handle errors when composio.connectedAccounts.delete throws', async () => {
+    vi.stubEnv("NODE_ENV", "development")
     const mockAccount = {
       id: 'account-456',
       userId: 'test-user-id',
@@ -89,7 +95,7 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
     
     vi.mocked(composio.composio.connectedAccounts.list).mockResolvedValue({
       items: [mockAccount],
-    })
+    } as any)
     
     const errorMessage = 'Failed to delete connection'
     vi.mocked(composio.composio.connectedAccounts.delete).mockRejectedValue(
@@ -97,7 +103,7 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
     )
 
     const params = Promise.resolve({ toolkit: 'shopify' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -109,7 +115,7 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
 
   it('should validate toolkit before attempting disconnect', async () => {
     const params = Promise.resolve({ toolkit: 'not-a-toolkit' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -118,25 +124,25 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
     expect(composio.composio.connectedAccounts.list).not.toHaveBeenCalled()
   })
 
-  it('should use correct userId from getUserId', async () => {
+  it('should use correct userId from getUserIdFromRequest', async () => {
     const mockAccount = {
       id: 'account-789',
       userId: 'custom-user-789',
       toolkit: 'junglescout',
     }
     
-    vi.mocked(composio.getUserId).mockReturnValue('custom-user-789')
+    vi.mocked(userSession.getUserIdFromRequest).mockResolvedValue('custom-user-789')
     vi.mocked(composio.composio.connectedAccounts.list).mockResolvedValue({
       items: [mockAccount],
-    })
-    vi.mocked(composio.composio.connectedAccounts.delete).mockResolvedValue(undefined)
+    } as any)
+    vi.mocked(composio.composio.connectedAccounts.delete).mockResolvedValue(undefined as any)
 
     const params = Promise.resolve({ toolkit: 'junglescout' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     await DELETE(request, { params })
 
-    expect(composio.getUserId).toHaveBeenCalled()
+    expect(userSession.getUserIdFromRequest).toHaveBeenCalled()
     expect(composio.composio.connectedAccounts.list).toHaveBeenCalledWith({
       userIds: ['custom-user-789'],
       toolkitSlugs: ['junglescout'],
@@ -144,13 +150,14 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
   })
 
   it('should handle errors when composio.connectedAccounts.list throws', async () => {
+    vi.stubEnv("NODE_ENV", "development")
     const errorMessage = 'Failed to list connected accounts'
     vi.mocked(composio.composio.connectedAccounts.list).mockRejectedValue(
       new Error(errorMessage)
     )
 
     const params = Promise.resolve({ toolkit: 'junglescout' })
-    const request = {} as Request
+    const request = {} as NextRequest
 
     const response = await DELETE(request, { params })
     const data = await response.json()
@@ -165,6 +172,7 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
     
     for (const toolkit of toolkits) {
       vi.clearAllMocks()
+      vi.mocked(userSession.getUserIdFromRequest).mockResolvedValue('test-user-id')
       
       const mockAccount = {
         id: `account-${toolkit}`,
@@ -174,11 +182,11 @@ describe('DELETE /api/disconnect/[toolkit]', () => {
       
       vi.mocked(composio.composio.connectedAccounts.list).mockResolvedValue({
         items: [mockAccount],
-      })
-      vi.mocked(composio.composio.connectedAccounts.delete).mockResolvedValue(undefined)
+      } as any)
+      vi.mocked(composio.composio.connectedAccounts.delete).mockResolvedValue(undefined as any)
 
       const params = Promise.resolve({ toolkit })
-      const request = {} as Request
+      const request = {} as NextRequest
 
       const response = await DELETE(request, { params })
       const data = await response.json()

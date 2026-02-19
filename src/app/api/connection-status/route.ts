@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getConnectionStatus } from "@/lib/auth";
-import { getUserId } from "@/lib/composio";
+import { getUserIdFromRequest } from "@/lib/user-session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const userId = getUserId();
+    const userId = await getUserIdFromRequest();
     const summary = await getConnectionStatus(userId);
 
     return NextResponse.json({

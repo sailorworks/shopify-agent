@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUrl } from "@/lib/auth";
-import { getUserId, ALL_TOOLKITS, ToolkitSlug } from "@/lib/composio";
+import { getUserIdFromRequest } from "@/lib/user-session";
+import { ALL_TOOLKITS, ToolkitSlug } from "@/lib/composio";
 
 export async function GET(
   request: NextRequest,
@@ -20,7 +21,7 @@ export async function GET(
       );
     }
 
-    const userId = getUserId();
+    const userId = await getUserIdFromRequest();
     const authUrl = await getAuthUrl(userId, toolkit as ToolkitSlug);
 
     return NextResponse.json({

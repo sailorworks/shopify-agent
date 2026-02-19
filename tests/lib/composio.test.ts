@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv("COMPOSIO_API_KEY", "test-composio-key");
-  vi.stubEnv("DEFAULT_USER_ID", "test-user-id");
 });
 
 describe("composio.ts - Library Function Tests", () => {
@@ -52,31 +51,6 @@ describe("composio.ts - Library Function Tests", () => {
         "custom-user-id",
         expect.any(Object)
       );
-    });
-  });
-
-  describe("getUserId()", () => {
-    it("should return DEFAULT_USER_ID from env", async () => {
-      vi.doMock("@composio/core", () => ({
-        Composio: vi.fn(),
-      }));
-
-      const { getUserId } = await import("@/lib/composio");
-      const result = getUserId();
-      expect(result).toBe("test-user-id");
-    });
-
-    it("should return default when env var missing", async () => {
-      vi.stubEnv("DEFAULT_USER_ID", "");
-      delete process.env.DEFAULT_USER_ID;
-
-      vi.doMock("@composio/core", () => ({
-        Composio: vi.fn(),
-      }));
-
-      const { getUserId } = await import("@/lib/composio");
-      const result = getUserId();
-      expect(result).toBe("shopify_demo_user");
     });
   });
 
